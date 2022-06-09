@@ -5,20 +5,9 @@ import (
 	"os"
 	"os/signal"
 
+	"dcard-pretest/pkg/leaderboard"
 	"github.com/robfig/cron/v3"
 )
-
-type leaderboard struct {
-}
-
-func (r leaderboard) Reset() error {
-	log.Println("clear leaderboard...")
-	return nil
-}
-func resetLeaderboard() {
-	l := &leaderboard{}
-	l.Reset()
-}
 
 func main() {
 	log.Println("Starting cron ....")
@@ -35,4 +24,9 @@ func main() {
 	sig := make(chan os.Signal)
 	signal.Notify(sig, os.Interrupt, os.Kill)
 	<-sig
+}
+
+func resetLeaderboard() {
+	board := NewLeaderboard()
+	board.Reset()
 }
