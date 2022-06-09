@@ -20,13 +20,11 @@ func main() {
 
 	c := cron.New(cron.WithSeconds())
 
-	// TODO: modify to every 10 min
-	c.AddFunc("@every 60s", resetLeaderboard)
+	c.AddFunc("@every 600s", resetLeaderboard)
 
 	c.Start()
 	defer c.Stop()
 
-	// TODO: graceful shutdown
 	sig := make(chan os.Signal)
 	signal.Notify(sig, os.Interrupt, os.Kill)
 	<-sig

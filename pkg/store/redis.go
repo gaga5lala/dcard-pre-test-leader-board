@@ -52,6 +52,7 @@ func (s *Store) Reset(ctx context.Context, key string) error {
 	err := s.client.Del(ctx, key).Err()
 	return err
 }
+
 func (s *Store) Close() error {
 	err := s.client.Close()
 	return err

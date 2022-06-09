@@ -20,7 +20,7 @@ func Run() {
 }
 
 func main() {
-	logger.WithFields(logger.Fields{}).Info("Start leaderboard service")
+	logger.Info("Start leaderboard service")
 
 	s := store.NewRedis()
 	defer s.Close()
@@ -28,8 +28,7 @@ func main() {
 	r := gin.Default()
 	v1 := r.Group("/api/v1").Use(JSONMiddleware())
 
-	// curl -X GET http://localhost/api/v1/leaderboard
-	v1.GET("/redis-leaderboard", func(c *gin.Context) {
+	v1.GET("/leaderboard", func(c *gin.Context) {
 		result, err := s.Top10(c, leaderboardKey)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"status": "fail"})
@@ -38,9 +37,10 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"topPlayers": result})
 	})
 
-	v1.POST("/redis-score", func(c *gin.Context) {
+	v1.POST("/score", func(c *gin.Context) {
 		clientID := c.GetHeader("ClientId")
 
+		// arbitrary constrain by myself
 		re := regexp.MustCompile("^[a-z0-9]{4,16}$")
 		matched := re.MatchString(clientID)
 
@@ -69,7 +69,7 @@ func main() {
 		})
 	})
 
-	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+	r.Run(":80")
 }
 
 func JSONMiddleware() gin.HandlerFunc {
