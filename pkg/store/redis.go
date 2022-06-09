@@ -34,7 +34,7 @@ func (s *Store) Insert(ctx context.Context, key string, score model.Score) error
 func (s *Store) Top10(ctx context.Context, key string) ([]*model.Score, error) {
 	scores, err := s.client.ZRevRangeWithScores(ctx, key, 0, 9).Result()
 	if err != nil {
-		return make([]*model.Score, 10), err
+		return make([]*model.Score, 0), err
 	}
 
 	result := make([]*model.Score, len(scores))
@@ -46,7 +46,11 @@ func (s *Store) Top10(ctx context.Context, key string) ([]*model.Score, error) {
 		}
 	}
 	return result, nil
+}
 
+func (s *Store) Reset(ctx context.Context, key string) error {
+	err := s.client.Del(ctx, key).Err()
+	return err
 }
 func (s *Store) Close() error {
 	err := s.client.Close()

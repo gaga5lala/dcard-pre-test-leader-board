@@ -1,12 +1,18 @@
 package main
 
 import (
+	"context"
+	"dcard-pretest/pkg/store"
 	"log"
 	"os"
 	"os/signal"
 
-	"dcard-pretest/pkg/leaderboard"
 	"github.com/robfig/cron/v3"
+	logger "github.com/sirupsen/logrus"
+)
+
+const (
+	leaderboardKey = "dcard-leaderboard"
 )
 
 func main() {
@@ -15,7 +21,7 @@ func main() {
 	c := cron.New(cron.WithSeconds())
 
 	// TODO: modify to every 10 min
-	c.AddFunc("@every 5s", resetLeaderboard)
+	c.AddFunc("@every 60s", resetLeaderboard)
 
 	c.Start()
 	defer c.Stop()
@@ -27,6 +33,11 @@ func main() {
 }
 
 func resetLeaderboard() {
-	board := NewLeaderboard()
-	board.Reset()
+	ctx := context.TODO()
+
+	err := store.NewRedis().Reset(ctx, leaderboardKey)
+	if err != nil {
+		logger.Errorln("fail to reset leaderboard", err)
+	}
+	logger.Infoln("success to reset leaderboard", leaderboardKey)
 }

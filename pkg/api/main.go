@@ -26,7 +26,7 @@ func main() {
 	defer s.Close()
 
 	r := gin.Default()
-	v1 := r.Group("/api/v1")
+	v1 := r.Group("/api/v1").Use(JSONMiddleware())
 
 	// curl -X GET http://localhost/api/v1/leaderboard
 	v1.GET("/redis-leaderboard", func(c *gin.Context) {
@@ -70,4 +70,11 @@ func main() {
 	})
 
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+}
+
+func JSONMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Content-Type", "application/json")
+		c.Next()
+	}
 }
