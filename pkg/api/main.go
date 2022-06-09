@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"dcard-pretest/pkg/store"
 	"net/http"
 	"regexp"
 
@@ -33,11 +34,7 @@ func Run() {
 func main() {
 	logger.WithFields(logger.Fields{}).Info("Start leaderboard service")
 
-	redisClient := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "",
-		DB:       0,
-	})
+	redisClient := store.NewRedis()
 	defer redisClient.Close()
 
 	r := gin.Default()
