@@ -2,10 +2,8 @@ package api
 
 import (
 	"context"
-	"dcard-pretest/pkg/store"
-	"encoding/json"
 	"net/http"
-	"strconv"
+	"regexp"
 
 	"github.com/go-redis/redis/v9"
 	logger "github.com/sirupsen/logrus"
@@ -17,13 +15,15 @@ const (
 	leaderboardKey = "dcard-leaderboard"
 )
 
+var (
+	start = int64(0)
+	stop  = int64(9)
+)
+
 // TODO: type Score = store.Score
 type Score struct {
-	id       int64   `gorm:"primary_key;auto_increment;not_null"`
-	ClientID string  `json:"client_id" gorm:"primaryKey,index"`
+	ClientID string  `json:"clientId"`
 	Score    float64 `json:"score"`
-	// created_at, updated_at
-	// expired_at
 }
 
 func Run() {
@@ -31,91 +31,76 @@ func Run() {
 }
 
 func main() {
-	db, err := store.NewPostgres()
-	if err != nil {
-		panic("failed to connect database")
-	}
+	logger.WithFields(logger.Fields{}).Info("Start leaderboard service")
 
-	sqlDB, err := db.DB()
-	if err != nil {
-		panic("failed to get generic database")
-	}
-	defer sqlDB.Close()
-
-	logger.WithFields(logger.Fields{}).Info("Start Indexer")
-
-	err = db.AutoMigrate(&Score{})
-	if err != nil {
-		panic("failed to migration score table")
-	}
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
+	defer redisClient.Close()
 
 	r := gin.Default()
 	v1 := r.Group("/api/v1")
 
-	// ?limit=n, default = 10
 	// curl -X GET http://localhost/api/v1/leaderboard
-	v1.GET("/leaderboard", func(c *gin.Context) {
-		scores := []Score{}
-		limit, _ := strconv.ParseInt(c.DefaultQuery("limit", "10"), 10, 64)
-		db.Limit(int(limit)).Order("score desc").Find(&scores)
-
-		c.JSON(http.StatusOK, scores)
-	})
-
 	v1.GET("/redis-leaderboard", func(c *gin.Context) {
-		redisClient := redis.NewClient(&redis.Options{
-			Addr:     "localhost:6379",
-			Password: "",
-			DB:       0,
-		})
-		scores, err := redisClient.ZRevRangeWithScores(c, leaderboardKey, 0, 9).Result()
+		scores, err := redisClient.ZRevRangeWithScores(c, leaderboardKey, start, stop).Result()
 		if err != nil {
 			logger.Errorln(err)
+			c.JSON(http.StatusInternalServerError, gin.H{"status": "fail"})
+			return
 		}
-		c.JSON(http.StatusOK, scores)
+
+		result := make([]*Score, len(scores))
+
+		for i, v := range scores {
+			result[i] = &Score{
+				ClientID: v.Member.(string),
+				Score:    v.Score,
+			}
+		}
+
+		c.JSON(http.StatusOK, gin.H{"topPlayers": result})
 	})
 
 	v1.POST("/redis-score", func(c *gin.Context) {
-		redisClient := redis.NewClient(&redis.Options{
-			Addr:     "localhost:6379",
-			Password: "",
-			DB:       0,
-		})
-		params := map[string]interface{}{}
 		clientID := c.GetHeader("ClientId")
-		params["client_id"] = clientID
-		err = json.NewDecoder(c.Request.Body).Decode(&params)
 
-		_, err = addScore(redisClient, params)
+		re := regexp.MustCompile("^[a-z0-9]{4,16}$")
+		matched := re.MatchString(clientID)
+
+		if matched == false {
+			logger.Infoln("invalid clientID", clientID)
+			c.JSON(http.StatusUnauthorized, gin.H{"status": "fail", "message": "Invalid clientID. format: [a-z0-9]{4,16}"})
+			return
+		}
+
+		var score Score
+
+		if err := c.BindJSON(&score); err != nil {
+			logger.Infoln("fail to bind score", err.Error())
+			c.JSON(http.StatusBadRequest, gin.H{"status": "fail"})
+			return
+		}
+		score.ClientID = clientID
+
+		err := addScore(c, redisClient, score)
 		if err != nil {
-			logger.Infoln(err)
+			logger.Infoln("fail to add score", err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"status": "fail"})
 		}
 		c.JSON(http.StatusAccepted, gin.H{
-			"resp": "hihi",
-		})
-	})
-
-	// TODO: create record
-	v1.POST("/score", func(c *gin.Context) {
-		clientID := c.GetHeader("ClientId")
-
-		c.JSON(http.StatusAccepted, gin.H{
-			"client_id": clientID,
+			"status": "ok",
 		})
 	})
 
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }
 
-func addScore(c *redis.Client, p map[string]interface{}) (map[string]interface{}, error) {
-
-	ctx := context.TODO()
-
-	// clientId := p["clientId"].(string)
-	clientId := p["client_id"].(string)
-	score := p["score"].(float64)
-
-	//Validate data here in a production environment
+func addScore(ctx context.Context, c *redis.Client, p Score) error {
+	clientId := p.ClientID
+	score := p.Score
 
 	err := c.ZAdd(ctx, leaderboardKey, redis.Z{
 		Score:  score,
@@ -123,21 +108,8 @@ func addScore(c *redis.Client, p map[string]interface{}) (map[string]interface{}
 	}).Err()
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	rank := c.ZRank(ctx, leaderboardKey, clientId)
-
-	if err != nil {
-		return nil, err
-	}
-
-	response := map[string]interface{}{
-		"data": map[string]interface{}{
-			"nickname": p["nickname"].(string),
-			"rank":     rank.Val(),
-		},
-	}
-
-	return response, nil
+	return nil
 }
