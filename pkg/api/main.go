@@ -25,19 +25,24 @@ func main() {
 	s := store.NewRedis()
 	defer s.Close()
 
+	r := setupRouter(s)
+	r.Run(":80")
+}
+
+func setupRouter(s *store.Store) *gin.Engine {
 	r := gin.Default()
 	v1 := r.Group("/api/v1").Use(JSONMiddleware())
 
 	v1.GET("/leaderboard", GetLeaderboardHandler(s))
 	v1.POST("/score", PostScoreHandler(s))
-
-	r.Run(":80")
+	return r
 }
 
 func GetLeaderboardHandler(s *store.Store) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		result, err := s.Top10(c, leaderboardKey)
 		if err != nil {
+			logger.Infoln("fail to get top10", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"status": "fail"})
 		}
 

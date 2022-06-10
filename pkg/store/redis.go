@@ -13,17 +13,17 @@ func NewRedis() *Store {
 		Password: "",
 		DB:       0,
 	})
-	store := Store{client: redisClient}
+	store := Store{Client: redisClient}
 
 	return &store
 }
 
 type Store struct {
-	client *redis.Client
+	Client *redis.Client
 }
 
 func (s *Store) Insert(ctx context.Context, key string, score model.Score) error {
-	err := s.client.ZAdd(ctx, key, &redis.Z{
+	err := s.Client.ZAdd(ctx, key, &redis.Z{
 		Score:  score.Score,
 		Member: score.ClientId,
 	}).Err()
@@ -32,7 +32,7 @@ func (s *Store) Insert(ctx context.Context, key string, score model.Score) error
 }
 
 func (s *Store) Top10(ctx context.Context, key string) ([]*model.Score, error) {
-	scores, err := s.client.ZRevRangeWithScores(ctx, key, 0, 9).Result()
+	scores, err := s.Client.ZRevRangeWithScores(ctx, key, 0, 9).Result()
 	if err != nil {
 		return make([]*model.Score, 0), err
 	}
@@ -49,11 +49,11 @@ func (s *Store) Top10(ctx context.Context, key string) ([]*model.Score, error) {
 }
 
 func (s *Store) Reset(ctx context.Context, key string) error {
-	err := s.client.Del(ctx, key).Err()
+	err := s.Client.Del(ctx, key).Err()
 	return err
 }
 
 func (s *Store) Close() error {
-	err := s.client.Close()
+	err := s.Client.Close()
 	return err
 }

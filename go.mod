@@ -6,9 +6,13 @@ require github.com/gin-gonic/gin v1.8.1
 
 require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
+	github.com/go-redis/redismock/v8 v8.0.6 // indirect
 	github.com/onsi/gomega v1.19.0 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 require (
@@ -26,7 +30,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.1 // indirect
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/sirupsen/logrus v1.8.1
-	github.com/stretchr/testify v1.7.2 // indirect
+	github.com/stretchr/testify v1.7.2
 	github.com/ugorji/go/codec v1.2.7 // indirect
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
