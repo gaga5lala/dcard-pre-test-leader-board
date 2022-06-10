@@ -4,7 +4,7 @@ import (
 	"context"
 	"dcard-pretest/pkg/model"
 
-	"github.com/go-redis/redis/v9"
+	"github.com/go-redis/redis/v8"
 )
 
 func NewRedis() *Store {
@@ -23,7 +23,7 @@ type Store struct {
 }
 
 func (s *Store) Insert(ctx context.Context, key string, score model.Score) error {
-	err := s.client.ZAdd(ctx, key, redis.Z{
+	err := s.client.ZAdd(ctx, key, &redis.Z{
 		Score:  score.Score,
 		Member: score.ClientId,
 	}).Err()
