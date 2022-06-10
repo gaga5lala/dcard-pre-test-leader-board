@@ -77,10 +77,11 @@ func PostScoreHandler(s *store.Store) gin.HandlerFunc {
 		score.ClientId = clientID
 		err := s.Insert(c, leaderboardKey, score)
 		if err != nil {
+			logger.Infoln("fail to insert score", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"status": "fail"})
 		}
 
-		c.JSON(http.StatusAccepted, gin.H{
+		c.JSON(http.StatusOK, gin.H{
 			"status": "ok",
 		})
 	}
