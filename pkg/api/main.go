@@ -70,7 +70,7 @@ func PostScoreHandler(s *store.Store) gin.HandlerFunc {
 
 		if err := c.BindJSON(&score); err != nil {
 			logger.Infoln("fail to bind score", err.Error())
-			c.JSON(http.StatusBadRequest, gin.H{"status": "fail"})
+			c.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": "Invalid score. value should be number."})
 			return
 		}
 
