@@ -28,16 +28,27 @@ func main() {
 	r := gin.Default()
 	v1 := r.Group("/api/v1").Use(JSONMiddleware())
 
-	v1.GET("/leaderboard", func(c *gin.Context) {
+	v1.GET("/leaderboard", GetLeaderboardHandler(s))
+	v1.POST("/score", PostScoreHandler(s))
+
+	r.Run(":80")
+}
+
+func GetLeaderboardHandler(s *store.Store) gin.HandlerFunc {
+	fn := func(c *gin.Context) {
 		result, err := s.Top10(c, leaderboardKey)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"status": "fail"})
 		}
 
 		c.JSON(http.StatusOK, gin.H{"topPlayers": result})
-	})
+	}
 
-	v1.POST("/score", func(c *gin.Context) {
+	return gin.HandlerFunc(fn)
+}
+
+func PostScoreHandler(s *store.Store) gin.HandlerFunc {
+	fn := func(c *gin.Context) {
 		clientID := c.GetHeader("ClientId")
 
 		// arbitrary constrain by myself
@@ -67,9 +78,8 @@ func main() {
 		c.JSON(http.StatusAccepted, gin.H{
 			"status": "ok",
 		})
-	})
-
-	r.Run(":80")
+	}
+	return gin.HandlerFunc(fn)
 }
 
 func JSONMiddleware() gin.HandlerFunc {
