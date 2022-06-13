@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"regexp"
 
+	"github.com/gin-contrib/cors"
 	logger "github.com/sirupsen/logrus"
 
 	"github.com/gin-gonic/gin"
@@ -31,7 +32,12 @@ func main() {
 
 func setupRouter(s *store.Store) *gin.Engine {
 	r := gin.Default()
-	v1 := r.Group("/api/v1").Use(JSONMiddleware())
+	corsConf := cors.DefaultConfig()
+	corsConf.AllowAllOrigins = true
+	corsConf.AllowMethods = []string{"GET", "POST"}
+	corsConf.AllowHeaders = []string{"Authorization", "Content-Type", "Origin",
+		"Connection", "Accept-Encoding", "Accept-Language", "ClientId"}
+	v1 := r.Group("/api/v1").Use(cors.New(corsConf)).Use(JSONMiddleware())
 
 	v1.GET("/leaderboard", GetLeaderboardHandler(s))
 	v1.POST("/score", PostScoreHandler(s))
